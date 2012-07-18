@@ -5,7 +5,9 @@
 # file for import into OpenLDAP.  As latter doesn't support nested groups,
 # this program also hoists members of child groups into parent as necessary
 
-import sys,ldap,getopt
+import argparse
+import ldap
+import sys
 from ldap.controls import SimplePagedResultsControl
 
 from distutils import version
@@ -179,28 +181,29 @@ def main(argv):
 
    acct_users=[]
 
-   try:
-      opts,args=getopt.getopt(argv,"a:A:S:s:d:u:h")
-   except getopt.GetoptError:
-      usage()
-      sys.exit()
+   parser = argparse.ArgumentParser(description='Pull users/groups from AD and generate pseudo-LDIF for import into OpenLDAP')
+   parser.add_argument('-a', '--account', default='pickone@example.org',
+                       help='AD account')
+   parser.add_argument('-A', '--password', default='BadPenny',
+                       help='AD password')
+   parser.add_argument('-S', '--url', default='ldap://dc.example.org',
+                       help='AD URL')
+   parser.add_argument('-s', '--src', default='dc=example,dc=org',
+                       help='AD base DN')
+   parser.add_argument('-d', '--dest', default='dc=local',
+                       help='destination LDAP base DN')
+   parser.add_argument('-u', '--users',
+                       help='path to user information file')
+   args = parser.parse_args()
 
-   for opt,arg in opts:
-      if opt in ("-h"):
-         usage()
-         sys.exit()
-      elif opt in ("-a"):
-         ad_acct=arg
-      elif opt in ("-A"):
-         ad_passwd=arg
-      elif opt in ("-S"):
-         ldap_url=arg
-      elif opt in ("-s"):
-         src_base=arg
-      elif opt in ("-d"):
-         dst_base=arg
-      elif opt in ("-u"):
-         acct_users=load_acct_users(arg)
+   ad_acct = args.account
+   ad_passwd = args.password
+   ldap_url = args.url
+   src_base = args.src
+   dst_base = args.dest
+
+   if args.users:
+      acct_users=load_acct_users(args.users)
    
    user_flt = r'(&(objectcategory=person)(objectclass=user))'
    users,name_dict=retrieve_ldap_userinfo(ldap_url,src_base,user_flt,
